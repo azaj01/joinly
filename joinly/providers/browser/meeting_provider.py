@@ -31,6 +31,9 @@ from joinly.types import (
     MeetingParticipant,
     ProviderNotSupportedError,
     SpeechInterruptedError,
+    UIAnimationContent,
+    UIHtmlContent,
+    UIUpdate,
     VideoSnapshot,
 )
 
@@ -194,7 +197,7 @@ class BrowserMeetingProvider(BaseMeetingProvider, VideoReader):
             raise RuntimeError(msg)
 
         async with self._lock:
-            self._camera_feed.set_status(action)
+            self._camera_feed.set_effect(action)
             try:
                 yield self._page, self._platform_controller
             except Exception as e:
@@ -206,7 +209,7 @@ class BrowserMeetingProvider(BaseMeetingProvider, VideoReader):
             else:
                 logger.info("Successfully performed '%s'.", action)
             finally:
-                self._camera_feed.set_status("")
+                self._camera_feed.set_effect(None)
 
     @asynccontextmanager
     async def speech_guard(self) -> AsyncIterator[None]:
@@ -410,6 +413,13 @@ class BrowserMeetingProvider(BaseMeetingProvider, VideoReader):
                 await remove_overlay(page)
             finally:
                 await self._cleanup_content_page()
+
+    async def update_ui(self, update: UIUpdate) -> None:
+        """Update the UI on the camera feed."""
+        if isinstance(update.content, UIAnimationContent):
+            self._camera_feed.set_effect(update.content.animation)
+        elif isinstance(update.content, UIHtmlContent):
+            logger.warning("HTML UI content not yet supported")
 
     async def snapshot(self) -> VideoSnapshot:
         """Take a snapshot of the current video frame.
