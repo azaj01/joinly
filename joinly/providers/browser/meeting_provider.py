@@ -217,8 +217,8 @@ class BrowserMeetingProvider(BaseMeetingProvider, VideoReader):
         try:
             yield
         except SpeechInterruptedError:
-            self._camera_feed.set_status("interrupted")
-            self._camera_feed.set_status("")
+            self._camera_feed.set_effect("interrupted")
+            self._camera_feed.set_effect(None)
             raise
 
     async def _get_platform_controller(self, url: str) -> BrowserPlatformController:
