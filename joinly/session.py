@@ -129,7 +129,12 @@ class MeetingSession:
         Args:
             text (str): The text to be spoken.
         """
-        await self._speech_controller.speak_text(text)
+        guard = getattr(self._meeting_provider, "speech_guard", None)
+        if guard is not None:
+            async with guard():
+                await self._speech_controller.speak_text(text)
+        else:
+            await self._speech_controller.speak_text(text)
 
     async def send_chat_message(self, message: str) -> None:
         """Send a chat message in the meeting.

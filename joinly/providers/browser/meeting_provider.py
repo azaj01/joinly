@@ -30,6 +30,7 @@ from joinly.types import (
     MeetingChatHistory,
     MeetingParticipant,
     ProviderNotSupportedError,
+    SpeechInterruptedError,
     UIAnimationContent,
     UIHtmlContent,
     UIUpdate,
@@ -209,6 +210,16 @@ class BrowserMeetingProvider(BaseMeetingProvider, VideoReader):
                 logger.info("Successfully performed '%s'.", action)
             finally:
                 self._camera_feed.set_effect(None)
+
+    @asynccontextmanager
+    async def speech_guard(self) -> AsyncIterator[None]:
+        """Context manager that sets the interrupted camera status on interruption."""
+        try:
+            yield
+        except SpeechInterruptedError:
+            self._camera_feed.set_effect("interrupted")
+            self._camera_feed.set_effect(None)
+            raise
 
     async def _get_platform_controller(self, url: str) -> BrowserPlatformController:
         """Get the platform-specific meeting controller based on the URL.

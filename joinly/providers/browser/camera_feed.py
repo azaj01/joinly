@@ -140,6 +140,26 @@ function fxShare(ctx, cx, cy, logoW, logoH, t, alpha) {
     }
 }"""
 
+# Interrupted: dots scatter outward from center and fade
+_FX_INTERRUPTED = """\
+function fxInterrupted(ctx, cx, y, t, alpha) {
+    const N = 5, r = H * 0.007;
+    for (let i = 0; i < N; i++) {
+        const angle = (i / N) * Math.PI * 2 + t * 1.5;
+        const p = (t * 2.5 + i / N) % 1;
+        const spread = H * 0.01 + p * H * 0.04;
+        const dx = Math.cos(angle) * spread;
+        const dy = Math.sin(angle) * spread * 0.5;
+        const fade = (1 - p) * alpha;
+        if (fade < 0.01) continue;
+        ctx.globalAlpha = fade;
+        ctx.fillStyle = '#ffffff';
+        ctx.beginPath();
+        ctx.arc(cx + dx, y + dy, r * (1 - p * 0.5), 0, Math.PI * 2);
+        ctx.fill();
+    }
+}"""
+
 # Thinking: rotating arc segments with soft glow around the logo
 _FX_THINKING = """\
 function fxThinking(ctx, cx, cy, logoW, logoH, t, alpha) {
@@ -284,6 +304,7 @@ _CAMERA_OVERRIDE_TEMPLATE = """\
     {fx_typing}
     {fx_share}
     {fx_reading}
+    {fx_interrupted}
     {fx_thinking}
     {fx_busy}
 
@@ -291,6 +312,7 @@ _CAMERA_OVERRIDE_TEMPLATE = """\
         send_chat_message: fxTyping,
         get_chat_history: fxReading,
         get_participants: fxReading,
+        interrupted: fxInterrupted,
         busy: fxBusy,
     }};
 
@@ -484,6 +506,7 @@ class CameraFeed:
             fx_typing=_FX_TYPING,
             fx_share=_FX_SHARE,
             fx_reading=_FX_READING,
+            fx_interrupted=_FX_INTERRUPTED,
             fx_thinking=_FX_THINKING,
             fx_busy=_FX_BUSY,
         )
