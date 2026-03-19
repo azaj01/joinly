@@ -26,6 +26,7 @@ import pytest
 from fastmcp import FastMCP
 from joinly_client import JoinlyClient
 from joinly_client.types import TranscriptSegment
+from mcp.types import TextContent
 from PIL import Image
 
 MEETING_URL = os.environ.get("JOINLY_TEST_MEETING_URL")
@@ -264,6 +265,32 @@ async def test_segment_callback_content(
         ), f"Callback text doesn't match spoken words: {all_text}"
     finally:
         remove()
+
+
+async def test_speech_interruption(
+    bots: tuple[JoinlyClient, JoinlyClient],
+) -> None:
+    """Speaking while another bot is already speaking should be interrupted."""
+    bot_a, bot_b = bots
+
+    # Bot A starts a long speech
+    task_a = asyncio.create_task(
+        bot_a.client.call_tool(
+            "speak_text",
+            {"text": "One two three four five six seven eight nine ten."},
+        )
+    )
+    await asyncio.sleep(2)
+
+    # Bot B tries to speak over Bot A, should be interrupted immediately
+    result_b = await bot_b.client.call_tool("speak_text", {"text": "Hello."})
+    result_text = " ".join(
+        p.text for p in result_b.content if isinstance(p, TextContent)
+    )
+    assert "interrupted" in result_text.lower(), (
+        f"Expected Bot B to be interrupted, got: {result_text}"
+    )
+    await task_a
 
 
 async def test_video_snapshot_is_valid_image(
