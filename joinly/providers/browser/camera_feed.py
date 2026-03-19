@@ -309,16 +309,15 @@ _CAMERA_OVERRIDE_TEMPLATE = """\
     {fx_busy}
 
     const FX = {{
-        send_chat_message: fxTyping,
-        get_chat_history: fxReading,
-        get_participants: fxReading,
+        typing: fxTyping,
+        reading: fxReading,
         interrupted: fxInterrupted,
         busy: fxBusy,
     }};
 
     const FX_BG = {{
         thinking: fxThinking,
-        share_screen: fxShare,
+        sharing: fxShare,
     }};
 
     function _initCanvas() {{

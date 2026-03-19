@@ -26,11 +26,11 @@ from joinly.providers.browser.platforms import (
 from joinly.providers.browser.screen_share import remove_overlay, setup_content_stream
 from joinly.settings import get_settings
 from joinly.types import (
+    ActionAnimation,
     AudioChunk,
     MeetingChatHistory,
     MeetingParticipant,
     ProviderNotSupportedError,
-    SpeechInterruptedError,
     UIAnimationContent,
     UIHtmlContent,
     UIUpdate,
@@ -197,7 +197,6 @@ class BrowserMeetingProvider(BaseMeetingProvider, VideoReader):
             raise RuntimeError(msg)
 
         async with self._lock:
-            self._camera_feed.set_effect(action)
             try:
                 yield self._page, self._platform_controller
             except Exception as e:
@@ -208,18 +207,6 @@ class BrowserMeetingProvider(BaseMeetingProvider, VideoReader):
                 raise RuntimeError(msg) from None
             else:
                 logger.info("Successfully performed '%s'.", action)
-            finally:
-                self._camera_feed.set_effect(None)
-
-    @asynccontextmanager
-    async def speech_guard(self) -> AsyncIterator[None]:
-        """Context manager that sets the interrupted camera status on interruption."""
-        try:
-            yield
-        except SpeechInterruptedError:
-            self._camera_feed.set_effect("interrupted")
-            self._camera_feed.set_effect(None)
-            raise
 
     async def _get_platform_controller(self, url: str) -> BrowserPlatformController:
         """Get the platform-specific meeting controller based on the URL.
@@ -413,6 +400,10 @@ class BrowserMeetingProvider(BaseMeetingProvider, VideoReader):
                 await remove_overlay(page)
             finally:
                 await self._cleanup_content_page()
+
+    async def set_animation(self, animation: ActionAnimation | None) -> None:
+        """Set an action animation on the camera feed."""
+        self._camera_feed.set_effect(animation)
 
     async def update_ui(self, update: UIUpdate) -> None:
         """Update the UI on the camera feed."""

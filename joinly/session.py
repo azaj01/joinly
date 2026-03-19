@@ -1,6 +1,7 @@
 import contextlib
 import logging
-from collections.abc import Callable, Coroutine
+from collections.abc import AsyncIterator, Callable, Coroutine
+from contextlib import asynccontextmanager
 
 from joinly.core import (
     MeetingProvider,
@@ -9,8 +10,10 @@ from joinly.core import (
     VideoReader,
 )
 from joinly.types import (
+    ActionAnimation,
     MeetingChatHistory,
     MeetingParticipant,
+    SpeechInterruptedError,
     Transcript,
     UIUpdate,
     VideoSnapshot,
@@ -129,12 +132,12 @@ class MeetingSession:
         Args:
             text (str): The text to be spoken.
         """
-        guard = getattr(self._meeting_provider, "speech_guard", None)
-        if guard is not None:
-            async with guard():
-                await self._speech_controller.speak_text(text)
-        else:
+        try:
             await self._speech_controller.speak_text(text)
+        except SpeechInterruptedError:
+            await self.set_animation("interrupted")
+            await self.set_animation(None)
+            raise
 
     async def send_chat_message(self, message: str) -> None:
         """Send a chat message in the meeting.
@@ -142,7 +145,8 @@ class MeetingSession:
         Args:
             message (str): The message to be sent.
         """
-        await self._meeting_provider.send_chat_message(message)
+        async with self.animation("typing"):
+            await self._meeting_provider.send_chat_message(message)
 
     async def get_chat_history(self) -> MeetingChatHistory:
         """Get the chat history from the meeting.
@@ -150,7 +154,8 @@ class MeetingSession:
         Returns:
             MeetingChatHistory: The chat history of the meeting.
         """
-        return await self._meeting_provider.get_chat_history()
+        async with self.animation("reading"):
+            return await self._meeting_provider.get_chat_history()
 
     async def get_participants(self) -> list[MeetingParticipant]:
         """Get the list of participants in the meeting.
@@ -158,7 +163,8 @@ class MeetingSession:
         Returns:
             list[MeetingParticipant]: A list of participants in the meeting.
         """
-        return await self._meeting_provider.get_participants()
+        async with self.animation("reading"):
+            return await self._meeting_provider.get_participants()
 
     async def get_video_snapshot(self) -> VideoSnapshot:
         """Get a snapshot of the current video feed.
@@ -174,7 +180,8 @@ class MeetingSession:
         Args:
             url: URL to display while sharing.
         """
-        await self._meeting_provider.share_screen(url)
+        async with self.animation("sharing"):
+            await self._meeting_provider.share_screen(url)
 
     async def stop_sharing(self) -> None:
         """Stop sharing screen in the meeting."""
@@ -187,6 +194,19 @@ class MeetingSession:
     async def unmute(self) -> None:
         """Unmute yourself in the meeting."""
         await self._meeting_provider.unmute()
+
+    async def set_animation(self, animation: ActionAnimation | None) -> None:
+        """Set an action animation on the meeting provider."""
+        await self._meeting_provider.set_animation(animation)
+
+    @asynccontextmanager
+    async def animation(self, name: ActionAnimation) -> AsyncIterator[None]:
+        """Show an action animation for the duration of the block."""
+        await self.set_animation(name)
+        try:
+            yield
+        finally:
+            await self.set_animation(None)
 
     async def update_ui(self, update: UIUpdate) -> None:
         """Update the UI on the meeting provider.
