@@ -1,4 +1,5 @@
 from dataclasses import dataclass
+from typing import Literal
 
 from joinly_common.types import (
     MeetingChatHistory,
@@ -16,7 +17,10 @@ from joinly_common.types import (
     VideoSnapshot,
 )
 
+ActionAnimation = Literal["typing", "reading", "interrupted", "sharing"]
+
 __all__ = [
+    "ActionAnimation",
     "MeetingChatHistory",
     "MeetingChatMessage",
     "MeetingParticipant",

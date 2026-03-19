@@ -1,5 +1,6 @@
 from joinly.core import MeetingProvider
 from joinly.types import (
+    ActionAnimation,
     MeetingChatHistory,
     MeetingParticipant,
     ProviderNotSupportedError,
@@ -59,6 +60,9 @@ class BaseMeetingProvider(MeetingProvider):
         """Stop sharing screen in the meeting."""
         msg = "Provider does not support stopping screen share."
         raise ProviderNotSupportedError(msg)
+
+    async def set_animation(self, animation: ActionAnimation | None) -> None:
+        """Set an action animation on the camera feed."""
 
     async def update_ui(self, update: UIUpdate) -> None:
         """Update the UI on the meeting provider."""

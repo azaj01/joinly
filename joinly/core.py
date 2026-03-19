@@ -3,6 +3,7 @@ from collections.abc import AsyncIterator
 from typing import Protocol
 
 from joinly.types import (
+    ActionAnimation,
     AudioChunk,
     AudioFormat,
     MeetingChatHistory,
@@ -246,6 +247,10 @@ class MeetingProvider(Protocol):
 
     async def stop_sharing(self) -> None:
         """Stop sharing screen in the meeting."""
+        ...
+
+    async def set_animation(self, animation: ActionAnimation | None) -> None:
+        """Set an action animation on the camera feed."""
         ...
 
     async def update_ui(self, update: UIUpdate) -> None:
